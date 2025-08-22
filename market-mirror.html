@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Mirror - Live Data</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --bg-primary: #000000; --bg-secondary: #0f0f0f; --bg-tertiary: #1a1a1a;
+            --accent-green: #00ff41; --accent-green-dark: #009929; --text-primary: #00ff41;
+            --text-secondary: #66ff66; --text-dim: #339933; --border-primary: #00ff41;
+            --border-secondary: #339933; --danger-red: #ff0040; --warning-yellow: #ffff00; --info-blue: #4a90e2;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; }
+        .container { max-width: 1800px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; margin-bottom: 15px; padding: 20px 0; border-bottom: 1px solid var(--border-primary); background: var(--bg-secondary); }
+        .title { font-size: 3.5rem; font-weight: 700; margin-bottom: 10px; }
+        .subtitle { font-size: 1.3rem; color: var(--text-secondary); }
+        .timeline-container { background: var(--bg-secondary); padding: 15px 20px; margin-bottom: 30px; border: 1px solid var(--border-secondary); text-align: center; }
+        .timeline-container label { font-size: 1rem; font-weight: 500; margin-right: 15px; }
+        #timeline-scrubber { width: 50%; accent-color: var(--accent-green); }
+        #timeline-date { display: inline-block; width: 200px; font-weight: 600; color: var(--accent-green); letter-spacing: 1px; }
+        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 30px; padding: 20px; background: var(--bg-secondary); border: 1px solid var(--border-secondary); }
+        .control-btn { background: var(--bg-tertiary); border: 1px solid var(--border-secondary); color: var(--text-primary); padding: 12px 20px; cursor: pointer; font-weight: 500; font-size: 0.9rem; transition: all 0.2s ease; text-transform: uppercase; }
+        .control-btn:hover, .control-btn:disabled { background: var(--bg-tertiary); opacity: 0.6; cursor: not-allowed; }
+        .control-btn:hover:not(:disabled) { background: var(--bg-secondary); border-color: var(--border-primary); opacity: 1; }
+        .control-btn.active { background: var(--accent-green-dark); border-color: var(--border-primary); color: var(--bg-primary); opacity: 1; }
+        .main-grid { display: grid; grid-template-columns: 1fr 400px; gap: 20px; margin-bottom: 30px; }
+        .dashboard-section { background: var(--bg-secondary); border: 1px solid var(--border-secondary); padding: 20px; }
+        .section-title { font-size: 1.2rem; font-weight: 600; color: var(--text-primary); margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid var(--border-secondary); text-transform: uppercase; }
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+        .sentiment-card { background: var(--bg-tertiary); border: 1px solid var(--border-secondary); padding: 20px; transition: all 0.2s ease; position: relative; }
+        .sentiment-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--accent-green); }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border-secondary); }
+        .card-title { font-size: 1rem; font-weight: 600; }
+        .category-tag { padding: 4px 12px; font-size: 0.7rem; font-weight: 600; border: 1px solid var(--border-secondary); text-transform: uppercase; color: var(--text-dim); }
+        .metric-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid rgba(51, 153, 51, 0.2); }
+        .metric-row:last-child { border-bottom: none; }
+        .metric-name, .metric-value { font-size: 0.85rem; color: var(--text-dim); }
+        .price { font-weight: 600; font-size: 0.95rem; color: var(--text-primary); }
+        .change { padding: 3px 6px; font-size: 0.8rem; font-weight: 500; border: 1px solid; }
+        .positive { color: var(--accent-green); border-color: var(--accent-green); }
+        .negative { color: var(--danger-red); border-color: var(--danger-red); }
+        .neutral { color: var(--text-dim); border-color: var(--text-dim); }
+        .status-indicator { width: 8px; height: 8px; margin-left: 8px; border-radius: 50%;}
+        .bullish { background: var(--accent-green); } .bearish { background: var(--danger-red); } .neutral-status { background: var(--warning-yellow); }
+        .sidebar { display: flex; flex-direction: column; gap: 20px; }
+        .chart-container { height: 250px; background: var(--bg-tertiary); border: 1px solid var(--border-secondary); margin-top: 15px; position: relative; }
+        .loading { display: flex; justify-content: center; align-items: center; height: 80px; font-size: 1rem; }
+        .loading::after { content: ''; width: 16px; height: 16px; border: 2px solid var(--border-secondary); border-top: 2px solid var(--accent-green); border-radius: 50%; margin-left: 10px; animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .executive-summary { background: var(--bg-tertiary); border: 1px solid var(--border-primary); padding: 15px; margin-top: 10px; }
+        .summary-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .summary-status { padding: 6px 12px; border: 1px solid; font-weight: 600; font-size: 0.8rem; }
+        .summary-bullish { background: var(--accent-green-dark); color: var(--bg-primary); border-color: var(--accent-green); }
+        .summary-bearish { background: var(--danger-red); color: var(--bg-primary); border-color: var(--danger-red); }
+        .summary-neutral { background: var(--bg-primary); color: var(--warning-yellow); border-color: var(--warning-yellow); }
+        .summary-text { font-size: 0.85rem; line-height: 1.5; color: var(--text-secondary); }
+        .news-item { background: var(--bg-tertiary); border: 1px solid var(--border-secondary); padding: 10px; margin-bottom: 8px; font-size: 0.8rem; }
+        .news-title a { color: var(--text-primary); font-weight: 500; text-decoration: none; }
+        .news-title a:hover { text-decoration: underline; }
+        .news-time { color: var(--text-dim); font-size: 0.7rem; margin-top: 4px; }
+        .last-updated { text-align: center; margin-top: 20px; color: var(--text-dim); font-size: 0.85rem; padding: 8px; border: 1px solid var(--border-secondary); background: var(--bg-secondary); }
+        .time-controls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+        .time-btn { background: var(--bg-tertiary); border: 1px solid var(--border-secondary); color: var(--text-dim); padding: 6px; cursor: pointer; font-size: 0.75rem; transition: all 0.2s ease; }
+        .time-btn:hover, .time-btn.active { background: var(--accent-green-dark); color: var(--bg-primary); border-color: var(--border-primary); }
+        .error { background: rgba(255, 0, 64, 0.1); border: 1px solid var(--danger-red); color: var(--danger-red); padding: 12px; margin: 8px 0; text-align: center; }
+        .symbol-select { width: 100%; background: var(--bg-tertiary); border: 1px solid var(--border-secondary); color: var(--text-primary); padding: 8px; font-size: 0.85rem; margin-bottom: 15px; }
+        .signals-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 15px; margin-bottom: 40px; }
+        .signal-card { background-color: var(--bg-tertiary); border-left: 4px solid; padding: 15px; }
+        .signal-card.critical { border-color: var(--danger-red); }
+        .signal-card.warning { border-color: var(--warning-yellow); }
+        .signal-card.opportunity { border-color: var(--accent-green); }
+        .signal-card.info { border-color: var(--info-blue); }
+        .signal-title { font-weight: 600; font-size: 1rem; color: var(--text-primary); margin-bottom: 5px; }
+        .signal-desc { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; }
+        @media (max-width: 1200px) { .main-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1 class="title">MARKET MIRROR</h1>
+            <p class="subtitle">Live & Historical Market Intelligence</p>
+        </header>
+
+        <div class="timeline-container">
+            <label for="timeline-scrubber">Historical View:</label>
+            <input type="range" id="timeline-scrubber" min="0" max="90" value="90" oninput="handleTimelineScrub(this.value)">
+            <span id="timeline-date">TODAY (LIVE)</span>
+        </div>
+
+        <div class="controls">
+            <button class="control-btn active" onclick="toggleView(this, 'all')">All Markets</button>
+            <button class="control-btn" onclick="toggleView(this, 'global')">Global Indices</button>
+            <button class="control-btn" onclick="toggleView(this, 'india')">Indian Markets</button>
+            <button class="control-btn" id="refresh-btn" onclick="refreshData()">Refresh Data</button>
+            <button class="control-btn" id="autorefresh-btn" onclick="toggleAutoRefresh(this)">Auto-Refresh: ON</button>
+        </div>
+        <main class="main-grid">
+            <section class="dashboard-section">
+                <h2 class="section-title">Active Signals</h2>
+                <div class="signals-grid" id="signalsGrid"><div class="loading"></div></div>
+                <h2 class="section-title" style="margin-top: 40px;">Market Data Matrix</h2>
+                <div class="dashboard-grid" id="dashboardGrid"><div class="loading"></div></div>
+            </section>
+            <aside class="sidebar">
+                <div class="chart-panel">
+                    <h2 class="section-title">Chart Analysis</h2>
+                    <select class="symbol-select" id="chartSymbolSelect" onchange="updateChart()"></select>
+                    <div class="time-controls">
+                        <button class="time-btn active" onclick="switchTimeframe(this, '1d', '5m')">1D</button>
+                        <button class="time-btn" onclick="switchTimeframe(this, '5d', '30m')">5D</button>
+                        <button class="time-btn" onclick="switchTimeframe(this, '1mo', '1d')">1M</button>
+                        <button class="time-btn" onclick="switchTimeframe(this, '3mo', '1d')">3M</button>
+                    </div>
+                    <div class="chart-container" id="chartContainer"></div>
+                </div>
+                <section class="summary-panel"><h2 class="section-title" id="summary-title">Executive Summary</h2><div class="executive-summary" id="executiveSummary"></div></section>
+                <section class="news-panel" id="news-panel"><h2 class="section-title" id="news-title">Live Business News</h2><div id="newsContainer"></div></section>
+            </aside>
+        </main>
+        <footer class="last-updated" id="lastUpdated"></footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script>
+        // --- CONFIGURATION ---
+        const marketDataConfig = {
+            benchmarks: {
+                'S&P 500': { name: 'S&P 500 Index', region: 'Global', yahooSymbol: '^GSPC', keywords: ['S&P', 'U.S. stock', 'Wall Street', 'equities'] },
+                'Nasdaq': { name: 'Nasdaq Composite', region: 'Global', yahooSymbol: '^IXIC', keywords: ['Nasdaq', 'tech stock', 'Apple', 'Nvidia'] },
+                'Russell 2000': { name: 'Russell 2000 Index', region: 'Global', yahooSymbol: '^RUT', keywords: ['russell', 'small cap', 'IWM'] },
+                'Nifty 50': { name: 'Nifty 50', region: 'India', yahooSymbol: '^NSEI', keywords: ['Nifty', 'Sensex', 'Indian stock', 'Dalal Street', 'NSE'] },
+                'Sensex': { name: 'BSE Sensex', region: 'India', yahooSymbol: '^BSESN', keywords: ['Sensex', 'BSE', 'Indian market'] },
+            },
+            volatility: {
+                'VIX': { name: 'CBOE Volatility Index', region: 'Global', yahooSymbol: '^VIX', keywords: ['VIX', 'volatility', 'fear index', 'CBOE'] },
+                'India VIX': { name: 'India VIX', region: 'India', yahooSymbol: '^INDIAVIX', keywords: ['India VIX', 'volatility'] },
+            },
+            commodities: {
+                'Gold': { name: 'Gold Spot', region: 'Global', yahooSymbol: 'GC=F', keywords: ['gold', 'bullion', 'commodities', 'XAU'] },
+                'Crude Oil': { name: 'WTI Crude Oil', region: 'Global', yahooSymbol: 'CL=F', keywords: ['oil', 'crude', 'OPEC', 'energy', 'WTI'] },
+            },
+            currencies: {
+                'DXY': { name: 'US Dollar Index', region: 'Global', yahooSymbol: 'DX-Y.NYB', keywords: ['dollar', 'DXY', 'currency', 'forex', 'USD'] },
+                'USD/INR': { name: 'USD/INR Rate', region: 'India', yahooSymbol: 'USDINR=X', keywords: ['rupee', 'USD/INR', 'currency', 'INR'] },
+            },
+            bonds: {
+                'US 10Y Yield': { name: '10-Year Treasury Yield', region: 'Global', yahooSymbol: '^TNX', keywords: ['treasury', 'yield', 'bond', 'rates', 'Fed'] },
+                'High-Yield Bonds': { name: 'HYG ETF', region: 'Global', yahooSymbol: 'HYG', keywords: ['high-yield', 'junk bond', 'corporate bond', 'credit spread'] },
+            },
+            specialized: {
+                'Emerging Markets': { name: 'MSCI Emerging Markets ETF', region: 'Global', yahooSymbol: 'EEM', keywords: ['emerging markets', 'EEM'] },
+                'Bank Nifty': { name: 'Nifty Bank Index', region: 'India', yahooSymbol: '^NSEBANK', keywords: ['Bank Nifty', 'banking stock', 'HDFC', 'ICICI'] },
+            }
+        };
+
+        const signalsConfig = [
+            { name: 'Fear Spike Detection', type: 'critical', desc: 'The VIX is above 25, signaling high market fear and potential for large swings.', check: d => d.volatility?.VIX?.price > 25 },
+            { name: 'Market Complacency', type: 'warning', desc: 'The VIX is below 12, indicating low fear. This can sometimes precede market downturns.', check: d => d.volatility?.VIX?.price < 12 },
+            { name: 'Dollar Breakout', type: 'warning', desc: d => `The US Dollar Index has moved sharply (${d.currencies?.DXY?.changePercent?.toFixed(1)}%), which can impact emerging markets and commodities.`, check: d => Math.abs(d.currencies?.DXY?.changePercent) > 0.8 },
+            { name: 'Flight to Safety', type: 'critical', desc: 'Gold is rising while Treasury yields are falling, a classic sign that investors are moving money to safer assets.', check: d => d.commodities?.Gold?.changePercent > 0.8 && d.bonds?.['US 10Y Yield']?.changePercent < -2.0 },
+            { name: 'Risk-On Momentum', type: 'opportunity', desc: 'Small caps and emerging markets are both rallying, signaling strong investor appetite for risk.', check: d => d.benchmarks?.['Russell 2000']?.changePercent > 1.2 && d.specialized?.['Emerging Markets']?.changePercent > 1.0 },
+            { name: 'Credit Spread Warning', type: 'critical', desc: 'High-yield bonds are underperforming, suggesting rising concerns about corporate debt and a potential economic slowdown.', check: d => d.bonds?.['High-Yield Bonds']?.changePercent < -0.5 && d.bonds?.['US 10Y Yield']?.changePercent < -1 },
+            { name: 'Tech Divergence', type: 'info', desc: `The Nasdaq is strongly outperforming the S&P 500, indicating a tech-led market.`, check: d => d.benchmarks?.Nasdaq && d.benchmarks?.['S&P 500'] && (d.benchmarks.Nasdaq.changePercent - d.benchmarks['S&P 500'].changePercent) > 0.75 },
+            { name: 'Small Cap Euphoria', type: 'warning', desc: 'Small cap stocks (Russell 2000) are up more than 2.5%, which can be a sign of excessive speculation.', check: d => d.benchmarks?.['Russell 2000']?.changePercent > 2.5 },
+            { name: 'India Outperformance', type: 'opportunity', desc: d => `The Nifty 50 is outperforming the S&P 500 by ${(d.benchmarks['Nifty 50'].changePercent - d.benchmarks['S&P 500'].changePercent).toFixed(1)}%, highlighting relative strength.`, check: d => d.benchmarks?.['Nifty 50']?.changePercent > d.benchmarks?.['S&P 500']?.changePercent + 0.5 },
+            { name: 'Rupee Pressure', type: 'warning', desc: `The Indian Rupee has weakened significantly against the USD today, which can impact inflation and FII flows.`, check: d => d.currencies?.['USD/INR']?.changePercent > 0.4 },
+            { name: 'Bond Market Sell-Off', type: 'critical', desc: d => `The 10-Year Treasury Yield has jumped by ${d.bonds['US 10Y Yield'].changePercent.toFixed(1)}%, signaling inflation fears or a hawkish Fed stance.`, check: d => d.bonds?.['US 10Y Yield']?.changePercent > 3.0 },
+            { name: 'Oil Price Shock', type: 'critical', desc: d => `Crude oil has surged by ${d.commodities['Crude Oil'].changePercent.toFixed(1)}%, raising inflation and economic growth concerns.`, check: d => Math.abs(d.commodities?.['Crude Oil']?.changePercent) > 4.0 },
+            { name: 'Emerging Market Weakness', type: 'warning', desc: 'Emerging markets are underperforming the S&P 500, indicating a risk-off sentiment globally.', check: d => d.specialized?.['Emerging Markets'] && d.benchmarks?.['S&P 500'] && (d.benchmarks['S&P 500'].changePercent - d.specialized['Emerging Markets'].changePercent) > 1.0 },
+            { name: 'Indian Banking Lead', type: 'info', desc: 'The Bank Nifty is outperforming the Nifty 50, suggesting a strong sentiment in the financial sector.', check: d => d.specialized?.['Bank Nifty'] && d.benchmarks?.['Nifty 50'] && (d.specialized['Bank Nifty'].changePercent > d.benchmarks['Nifty 50'].changePercent + 0.5) },
+            { name: 'Gold-Equity Divergence', type: 'info', desc: 'Gold and the S&P 500 are moving in opposite directions, a classic indicator of risk sentiment.', check: d => d.commodities?.Gold && d.benchmarks?.['S&P 500'] && (Math.sign(d.commodities.Gold.changePercent) !== Math.sign(d.benchmarks['S&P 500'].changePercent)) && Math.abs(d.commodities.Gold.changePercent) > 0.5 },
+            { name: 'Global Complacency', type: 'warning', desc: `Both the VIX and India VIX are at low levels, indicating widespread complacency that can make markets vulnerable to shocks.`, check: d => d.volatility?.VIX?.price < 13 && d.volatility?.['India VIX']?.price < 13 },
+        ];
+        
+        // --- STATE MANAGEMENT ---
+        let currentView = 'all', autoRefresh = true, refreshInterval, chart, newsData = [], liveMarketData = {};
+        let selectedDate = null; // null means today/live
+        let chartState = { symbol: '^GSPC', range: '1d', interval: '5m' };
+
+        // --- API & DATA FETCHING ---
+        async function fetchApi(endpoint) {
+            try {
+                const response = await fetch(`http://localhost:3000/${endpoint}`);
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || `Server responded with status: ${response.status}`);
+                return data;
+            } catch (error) {
+                console.error(`Failed to fetch from /${endpoint}:`, error);
+                document.getElementById('dashboardGrid').innerHTML = `<div class="error" style="grid-column: 1 / -1;"><strong>Connection Failed.</strong><br>Please ensure your local server is running.</div>`;
+                return null;
+            }
+        }
+        
+        async function fetchYahooFinanceData(symbol, range = '1d', interval = '5m') {
+            const data = await fetchApi(`finance-data/${symbol}?range=${range}&interval=${interval}`);
+            if (!data || !data.chart?.result?.[0]) return null;
+            const { meta, indicators } = data.chart.result[0];
+            const { regularMarketPrice, chartPreviousClose } = meta;
+            const change = regularMarketPrice - chartPreviousClose;
+            const changePercent = (change / chartPreviousClose) * 100;
+            return {
+                price: regularMarketPrice?.toFixed(2) || 'N/A', change: change?.toFixed(2) || 'N/A',
+                changePercent: !isNaN(changePercent) ? changePercent : 0,
+                sentiment: getSentiment(changePercent),
+                historicalData: { timestamps: data.chart.result[0].timestamp, prices: indicators.quote[0].close }
+            };
+        }
+        
+        async function fetchHistoricalDataForDate(symbol, date) {
+            const dayStart = new Date(date); dayStart.setHours(0, 0, 0, 0);
+            const dayEnd = new Date(date); dayEnd.setHours(23, 59, 59, 999);
+            const period1 = Math.floor(dayStart.getTime() / 1000);
+            const period2 = Math.floor(dayEnd.getTime() / 1000);
+
+            const data = await fetchApi(`finance-data/${symbol}?period1=${period1}&period2=${period2}`);
+            if (!data?.chart?.result?.[0]?.indicators?.quote?.[0]) return null;
+
+            const quote = data.chart.result[0].indicators.quote[0];
+            if (!quote.close || quote.close.length < 2) return null;
+
+            const closePrice = quote.close[quote.close.length - 1];
+            const previousClose = quote.close[quote.close.length - 2];
+            const change = closePrice - previousClose;
+            const changePercent = (change / previousClose) * 100;
+            return { price: closePrice?.toFixed(2) || 'N/A', change: change?.toFixed(2) || 'N/A', changePercent: !isNaN(changePercent) ? changePercent : 0, sentiment: getSentiment(changePercent) };
+        }
+
+        async function fetchAllMarketData(date = null) {
+            const data = {};
+            for (const category in marketDataConfig) data[category] = {};
+            
+            const promises = [];
+            for (const category in marketDataConfig) {
+                for (const symbolKey in marketDataConfig[category]) {
+                    const yahooSymbol = marketDataConfig[category][symbolKey].yahooSymbol;
+                    const promise = date
+                        ? fetchHistoricalDataForDate(yahooSymbol, date).then(result => ({ category, symbolKey, data: result }))
+                        : fetchYahooFinanceData(yahooSymbol).then(result => ({ category, symbolKey, data: result }));
+                    promises.push(promise);
+                }
+            }
+            const results = await Promise.all(promises);
+            results.forEach(item => { if (item.data) data[item.category][item.symbolKey] = item.data; });
+            return data;
+        }
+
+        async function fetchLiveNews(view) {
+            const region = (view === 'global') ? 'global' : 'india';
+            const data = await fetchApi(`news?region=${region}`);
+            return data?.items || [];
+        }
+
+        // --- ANALYSIS ---
+        function getSentiment(changePercent) {
+            const change = parseFloat(changePercent);
+            if (change > 1.5) return 'bullish'; if (change < -1.5) return 'bearish'; return 'neutral-status';
+        }
+
+        function generateExecutiveSummary(data, view) {
+            let dataToAnalyze = {}, title = 'Overall Market';
+            if (view === 'global') {
+                Object.values(data).forEach(cat => Object.entries(cat).forEach(([key, val]) => { if (marketDataConfig[val.category]?.region === 'Global') dataToAnalyze[key] = val; }));
+                title = 'Global Markets';
+            } else if (view === 'india') {
+                Object.values(data).forEach(cat => Object.entries(cat).forEach(([key, val]) => { if (marketDataConfig[val.category]?.region === 'India') dataToAnalyze[key] = val; }));
+                title = 'Indian Markets';
+            } else {
+                Object.values(data).forEach(cat => Object.assign(dataToAnalyze, cat));
+            }
+            const allData = Object.values(dataToAnalyze).filter(Boolean);
+            if (allData.length === 0) return { summary: 'Data is currently unavailable for this view.', status: 'neutral', title };
+            const bullishCount = allData.filter(d => d.sentiment === 'bullish').length;
+            const bearishCount = allData.filter(d => d.sentiment === 'bearish').length;
+            let status = 'neutral';
+            if (bullishCount > bearishCount) status = 'bullish'; if (bearishCount > bullishCount) status = 'bearish';
+            let summary = `Sentiment for <strong>${title}</strong> is currently <strong>${status.toUpperCase()}</strong>. `;
+            const keyMovers = allData.sort((a,b) => Math.abs(b.changePercent) - Math.abs(a.changePercent)).slice(0,1);
+            if(keyMovers.length > 0 && keyMovers[0].changePercent !== 0) {
+                 const keyMoverName = Object.entries(dataToAnalyze).find(([key, val]) => val === keyMovers[0])[0];
+                 summary += `The key mover is ${keyMoverName} with a change of ${keyMovers[0].changePercent.toFixed(2)}%.`;
+            }
+            return { summary, status, title };
+        }
+        
+        // --- RENDERING ---
+        function renderSignals(data) {
+            const signalsGrid = document.getElementById('signalsGrid');
+            const activeSignals = signalsConfig.filter(signal => {
+                try { return signal.check(data); } catch { return false; }
+            });
+
+            if (activeSignals.length === 0) {
+                signalsGrid.innerHTML = `<div style="color: var(--text-dim); text-align: center; grid-column: 1 / -1;">No significant market signals detected.</div>`;
+                return;
+            }
+
+            signalsGrid.innerHTML = activeSignals.map(signal => {
+                const description = typeof signal.desc === 'function' ? signal.desc(data) : signal.desc;
+                return `<div class="signal-card ${signal.type}"><div class="signal-title">${signal.name}</div><div class="signal-desc">${description}</div></div>`;
+            }).join('');
+        }
+
+        function renderMarketData(data) {
+            const grid = document.getElementById('dashboardGrid');
+            let html = '';
+            for (const category in marketDataConfig) {
+                html += `<h3 class="section-title" style="grid-column: 1 / -1; margin-top: 10px; text-transform: capitalize;">${category}</h3>`;
+                for (const symbolKey in marketDataConfig[category]) {
+                    const info = marketDataConfig[category][symbolKey];
+                    const symbolData = data[category]?.[symbolKey];
+                    if (currentView === 'all' || (currentView === 'global' && info.region === 'Global') || (currentView === 'india' && info.region === 'India')) {
+                        html += createSentimentCard(category, symbolKey, info, symbolData);
+                    }
+                }
+            }
+            grid.innerHTML = html;
+        }
+
+        function createSentimentCard(category, symbolKey, info, data) {
+            if (!data) return `<div class="sentiment-card"><div class="card-header"><div class="card-title">${symbolKey}</div></div><div style="text-align:center; color: var(--text-dim); padding: 20px 0;">Data unavailable</div></div>`;
+            const changeClass = parseFloat(data.change) > 0 ? 'positive' : parseFloat(data.change) < 0 ? 'negative' : 'neutral';
+            const changeSign = parseFloat(data.change) >= 0 ? '+' : '';
+            return `<div class="sentiment-card"><div class="card-header"><div class="card-title">${symbolKey}</div><div class="category-tag">${category}</div></div><div class="metric-row"><div class="metric-name">${info.name}</div><div class="metric-value"><div class="status-indicator ${data.sentiment}"></div></div></div><div class="metric-row"><div class="metric-name">Price</div><div class="price">${data.price}</div></div><div class="metric-row"><div class="metric-name">Change</div><div class="change ${changeClass}">${changeSign}${data.change} (${changeSign}${data.changePercent.toFixed(2)}%)</div></div></div>`;
+        }
+
+        function renderNews(news, view) {
+            const container = document.getElementById('newsContainer');
+            document.getElementById('news-title').textContent = view === 'global' ? 'Live Global Business News' : 'Live Indian Business News';
+            if (news.length === 0) { container.innerHTML = '<div style="padding: 10px; color: var(--text-dim); text-align: center;">No live news available.</div>'; return; }
+            container.innerHTML = news.slice(0, 10).map(item => `<div class="news-item"><div class="news-title"><a href="${item.link}" target="_blank" rel="noopener noreferrer">${item.title}</a></div><div class="news-time">${new Date(item.pubDate).toLocaleString()}</div></div>`).join('');
+        }
+        
+        function renderExecutiveSummary({ summary, status, title }) {
+            document.getElementById('summary-title').textContent = `${title} Summary`;
+            document.getElementById('executiveSummary').innerHTML = `<div class="summary-header"><div class="section-title" style="margin:0; border:none; padding:0; font-size:1rem;">Status</div><div class="summary-status summary-${status}">${status.toUpperCase()}</div></div><div class="summary-text">${summary}</div>`;
+        }
+        
+        async function createChart() { /* ... unchanged ... */ } // Placeholder for brevity
+        async function renderDashboard(date = null) { /* ... unchanged ... */ }
+        function handleTimelineScrub(value) { /* ... unchanged ... */ }
+        function toggleView(btn, view = 'all') { /* ... unchanged ... */ }
+        function refreshData() { /* ... unchanged ... */ }
+        function toggleAutoRefresh(btn) { /* ... unchanged ... */ }
+        function switchTimeframe(btn, range, interval) { /* ... unchanged ... */ }
+        function updateChart() { /* ... unchanged ... */ }
+        function startAutoRefresh() { /* ... unchanged ... */ }
+        function updateLastUpdated() { /* ... unchanged ... */ }
+        function populateChartSelector() { /* ... unchanged ... */ }
+        window.addEventListener('load', () => { /* ... unchanged ... */ });
+
+        // --- FULL FUNCTION DEFINITIONS ---
+        // (This section contains the full, unchanged code for brevity above)
+        async function createChart() {
+            const container = document.getElementById('chartContainer');
+            container.innerHTML = '<div class="loading"></div>';
+            
+            const stockData = await fetchYahooFinanceData(chartState.symbol, chartState.range, chartState.interval);
+            if (!stockData?.historicalData?.prices) {
+                container.innerHTML = `<div class="error">Chart data for ${chartState.symbol} unavailable.</div>`;
+                return;
+            }
+
+            container.innerHTML = '';
+            const canvas = document.createElement('canvas');
+            container.appendChild(canvas);
+            
+            const { timestamps, prices } = stockData.historicalData;
+            
+            let labels;
+            if (chartState.range === '1d' || chartState.range === '5d') {
+                labels = timestamps.map(ts => new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+            } else {
+                labels = timestamps.map(ts => new Date(ts * 1000).toLocaleDateString([], { month: 'short', day: 'numeric' }));
+            }
+            
+            let symbolInfo, keywords = [];
+            for (const category in marketDataConfig) {
+                for (const symbolKey in marketDataConfig[category]) {
+                    if (marketDataConfig[category][symbolKey].yahooSymbol === chartState.symbol) {
+                        symbolInfo = marketDataConfig[category][symbolKey];
+                        keywords = symbolInfo.keywords || [];
+                        break;
+                    }
+                }
+                if (symbolInfo) break;
+            }
+
+            const relevantNews = newsData.filter(news => news.title && keywords.some(kw => news.title.toLowerCase().includes(kw.toLowerCase())));
+            
+            const newsMarkers = relevantNews.map(news => {
+                const newsTime = new Date(news.pubDate).getTime();
+                let nearestTimestampIndex = -1, minDiff = Infinity;
+                timestamps.forEach((ts, index) => {
+                    const diff = Math.abs(ts * 1000 - newsTime);
+                    if (diff < minDiff) { minDiff = diff; nearestTimestampIndex = index; }
+                });
+                if (prices[nearestTimestampIndex] === null) {
+                    for (let i = nearestTimestampIndex + 1; i < prices.length; i++) { if (prices[i] !== null) { nearestTimestampIndex = i; break; } }
+                }
+                return { index: nearestTimestampIndex, item: news };
+            }).filter((marker, index, self) => marker.index !== -1 && index === self.findIndex(m => m.index === marker.index));
+
+            if (chart) chart.destroy();
+            chart = new Chart(canvas.getContext('2d'), { type: 'line', data: { labels: labels, datasets: [ { label: chartState.symbol, data: prices, borderColor: '#00ff41', backgroundColor: 'rgba(0, 255, 65, 0.1)', borderWidth: 2, fill: true, tension: 0.1, pointRadius: 0 }, { label: 'News Events', data: newsMarkers.map(marker => ({ x: marker.index, y: prices[marker.index] })), backgroundColor: '#ff6b6b', pointRadius: 6, pointStyle: 'triangle', showLine: false } ] }, options: { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' }, onHover: (e, el) => e.native.target.style.cursor = el[0] && el[0].datasetIndex === 1 ? 'pointer' : 'default', onClick: (e) => { const points = chart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, true); if (points[0]?.datasetIndex === 1) window.open(newsMarkers.find(m => m.index === points[0].index).item.link, '_blank'); }, plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(0, 0, 0, 0.9)', titleColor: '#00ff41', bodyColor: '#66ff66', borderColor: '#00ff41', borderWidth: 1, callbacks: { title: (context) => new Date(timestamps[context[0].dataIndex] * 1000).toLocaleString(), afterBody: (ctx) => { const newsMarker = newsMarkers.find(m => m.index === ctx[0].dataIndex); return newsMarker ? `\n📰 ${newsMarker.item.title}\n(Click to read article)` : ''; } } } }, scales: { x: { ticks: { color: '#339933', maxRotation: 0, autoSkip: true, maxTicksLimit: 7 } }, y: { ticks: { color: '#339933' } } } } });
+        }
+        
+        async function renderDashboard(date = null) {
+            const isHistorical = date !== null;
+            document.getElementById('dashboardGrid').innerHTML = '<div class="loading"></div>';
+            document.getElementById('signalsGrid').innerHTML = '<div class="loading"></div>';
+
+            const dataPromise = fetchAllMarketData(date);
+            const newsPromise = isHistorical ? Promise.resolve([]) : fetchLiveNews(currentView);
+            
+            const [marketData, fetchedNews] = await Promise.all([dataPromise, newsPromise]);
+            
+            newsData = fetchedNews || [];
+            liveMarketData = marketData || {};
+            
+            if (!liveMarketData || document.querySelector('#dashboardGrid .error')) return;
+
+            renderMarketData(liveMarketData);
+            renderSignals(liveMarketData);
+            
+            document.getElementById('news-panel').style.display = isHistorical ? 'none' : 'block';
+            if (!isHistorical) {
+                renderNews(newsData, currentView);
+            }
+            
+            const summaryData = generateExecutiveSummary(liveMarketData, currentView);
+            renderExecutiveSummary(summaryData);
+            updateLastUpdated();
+            
+            if (isHistorical) {
+                document.getElementById('chartContainer').innerHTML = `<div style="display:flex; align-items:center; justify-content:center; height:100%; color: var(--text-dim);">Live chart unavailable for historical dates.</div>`;
+            } else {
+                createChart();
+            }
+        }
+        
+        function handleTimelineScrub(value) {
+            const daysAgo = 90 - value;
+            const date = new Date();
+            date.setDate(date.getDate() - daysAgo);
+            
+            document.getElementById('autorefresh-btn').disabled = (daysAgo !== 0);
+            if (autoRefresh && daysAgo !== 0) {
+                toggleAutoRefresh(document.getElementById('autorefresh-btn'));
+            }
+
+            if (daysAgo === 0) {
+                selectedDate = null;
+                document.getElementById('timeline-date').textContent = "TODAY (LIVE)";
+                renderDashboard();
+            } else {
+                selectedDate = date;
+                document.getElementById('timeline-date').textContent = date.toDateString().toUpperCase();
+                renderDashboard(date);
+            }
+        }
+        
+        function toggleView(btn, view = 'all') {
+            currentView = view;
+            document.querySelectorAll('.controls .control-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            handleTimelineScrub(document.getElementById('timeline-scrubber').value);
+        }
+        function refreshData() { renderDashboard(selectedDate); }
+        function toggleAutoRefresh(btn) {
+            autoRefresh = !autoRefresh;
+            btn.textContent = `Auto-Refresh: ${autoRefresh ? 'ON' : 'OFF'}`;
+            if (autoRefresh) startAutoRefresh(); else clearInterval(refreshInterval);
+        }
+        function switchTimeframe(btn, range, interval) {
+            chartState.range = range; chartState.interval = interval;
+            document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active'); createChart();
+        }
+        function updateChart() { chartState.symbol = document.getElementById('chartSymbolSelect').value; createChart(); }
+        function startAutoRefresh() { clearInterval(refreshInterval); refreshInterval = setInterval(() => { if (autoRefresh && selectedDate === null) renderDashboard(); }, 900000); }
+        function updateLastUpdated() { document.getElementById('lastUpdated').textContent = selectedDate ? `Displaying Historical Data for ${selectedDate.toDateString()}` : `Live Data | Updated: ${new Date().toLocaleTimeString()}`; }
+        
+        function populateChartSelector() {
+            const select = document.getElementById('chartSymbolSelect');
+            select.innerHTML = '';
+            for (const category in marketDataConfig) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = category.charAt(0).toUpperCase() + category.slice(1);
+                for (const symbolKey in marketDataConfig[category]) {
+                    const info = marketDataConfig[category][symbolKey];
+                    const option = document.createElement('option');
+                    option.value = info.yahooSymbol;
+                    option.textContent = `${symbolKey} (${info.region})`;
+                    if (option.value === chartState.symbol) option.selected = true;
+                    optgroup.appendChild(option);
+                }
+                select.appendChild(optgroup);
+            }
+        }
+        
+        window.addEventListener('load', () => {
+            populateChartSelector();
+            renderDashboard();
+            startAutoRefresh();
+        });
+    </script>
+</body>
+</html>
