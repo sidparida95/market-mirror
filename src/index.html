@@ -25,7 +25,7 @@
         #timeline-date { display: inline-block; width: 200px; font-weight: 600; color: var(--accent-green); letter-spacing: 1px; }
         .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 30px; padding: 20px; background: var(--bg-secondary); border: 1px solid var(--border-secondary); }
         .control-btn { background: var(--bg-tertiary); border: 1px solid var(--border-secondary); color: var(--text-primary); padding: 12px 20px; cursor: pointer; font-weight: 500; font-size: 0.9rem; transition: all 0.2s ease; text-transform: uppercase; }
-        .control-btn:hover, .control-btn:disabled { background: var(--bg-tertiary); opacity: 0.6; cursor: not-allowed; }
+        .control-btn:disabled { opacity: 0.6; cursor: not-allowed; }
         .control-btn:hover:not(:disabled) { background: var(--bg-secondary); border-color: var(--border-primary); opacity: 1; }
         .control-btn.active { background: var(--accent-green-dark); border-color: var(--border-primary); color: var(--bg-primary); opacity: 1; }
         .main-grid { display: grid; grid-template-columns: 1fr 500px; gap: 20px; margin-bottom: 30px; }
@@ -82,50 +82,64 @@
         .signal-action::before { content: 'Action: '; font-weight: 600; font-style: normal; color: var(--text-secondary); }
         .site-footer { text-align: center; padding: 20px; margin-top: 20px; border-top: 1px solid var(--border-secondary); color: var(--text-dim); font-size: 0.85rem; }
         .site-footer p { margin: 4px 0; }
+        .signals-library { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 15px; margin-bottom: 40px; }
+        .library-card { background-color: var(--bg-tertiary); border: 1px solid var(--border-secondary); padding: 15px; position: relative; opacity: 0.6; transition: opacity 0.2s ease, border-color 0.2s ease; }
+        .library-card:hover { opacity: 1; }
+        .library-card .signal-title { font-size: 0.9rem; color: var(--text-secondary); }
+        .library-card .signal-desc { font-size: 0.8rem; color: var(--text-dim); line-height: 1.4; }
+        .library-card .status-dot { position: absolute; top: 18px; right: 15px; width: 10px; height: 10px; border-radius: 50%; background-color: #555; border: 1px solid #777; }
+        .library-card .status-dot.active { background-color: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); border-color: #fff; }
+        .library-card.active-card { opacity: 1; border-color: var(--border-primary); }
         
-        /* New Styles for Signal Library */
-        .signals-library {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 15px;
-            margin-bottom: 40px;
-        }
-        .library-card {
-            background-color: var(--bg-tertiary);
-            border: 1px solid var(--border-secondary);
+        /* --- NEW TOOLTIP STYLES --- */
+        .signal-tooltip {
+            position: absolute;
+            display: none;
+            background-color: #1f1f1f;
+            border: 1px solid var(--border-primary);
             padding: 15px;
-            position: relative;
-            opacity: 0.6;
+            z-index: 1000;
+            max-width: 400px;
+            pointer-events: none;
+            font-size: 0.85rem;
+            border-radius: 4px;
+            box-shadow: 0 4px 15px rgba(0, 255, 65, 0.2);
+            line-height: 1.5;
         }
-        .library-card .signal-title {
-            font-size: 0.9rem;
+        .signal-tooltip h4 {
+            font-size: 1rem;
+            color: var(--text-primary);
+            margin-top: 0;
+            margin-bottom: 8px;
+            border-bottom: 1px solid var(--border-secondary);
+            padding-bottom: 8px;
+        }
+        .signal-tooltip p {
+            margin-bottom: 12px;
             color: var(--text-secondary);
         }
-        .library-card .signal-desc {
+        .signal-tooltip code {
+            display: block;
+            background-color: var(--bg-primary);
+            padding: 8px;
+            border: 1px solid var(--border-secondary);
+            border-radius: 3px;
+            color: var(--warning-yellow);
+            font-family: 'Courier New', Courier, monospace;
             font-size: 0.8rem;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .signal-tooltip .tooltip-section-title {
+            font-weight: 600;
             color: var(--text-dim);
-            line-height: 1.4;
+            margin-top: 12px;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.5px;
         }
-        .library-card .status-dot {
-            position: absolute;
-            top: 18px;
-            right: 15px;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background-color: #555;
-            border: 1px solid #777;
-        }
-        .library-card .status-dot.active {
-            background-color: var(--accent-green);
-            box-shadow: 0 0 8px var(--accent-green);
-            border-color: #fff;
-        }
-        .library-card.active-card {
-            opacity: 1;
-            border-color: var(--border-primary);
-        }
-        
+
         @media (max-width: 1200px) { .main-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -187,6 +201,9 @@
             <p>Made by Sid Parida</p>
             <p>&copy; 2025 Market Mirror. All Rights Reserved.</p>
         </footer>
+        
+        <div id="signal-tooltip" class="signal-tooltip"></div>
+
     </div>
 </body>
 </html>
