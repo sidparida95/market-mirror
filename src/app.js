@@ -1,5 +1,27 @@
-import { Chart, registerables } from 'chart.js';
-Chart.register(registerables);
+import {
+    Chart,
+    LineController,
+    ScatterController, // <-- ADDED
+    LineElement,
+    PointElement,
+    LinearScale,
+    CategoryScale,
+    Tooltip,
+    Legend,
+    Filler             // <-- ADDED
+  } from 'chart.js';
+  
+  Chart.register(
+    LineController,
+    ScatterController, // <-- ADDED
+    LineElement,
+    PointElement,
+    LinearScale,
+    CategoryScale,
+    Tooltip,
+    Legend,
+    Filler             // <-- ADDED
+  );
 
     const marketDataConfig = {
         benchmarks: {
