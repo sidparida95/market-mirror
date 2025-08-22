@@ -1,3 +1,5 @@
+import { Chart, registerables } from 'chart.js';
+Chart.register(registerables);
 
     const marketDataConfig = {
         benchmarks: {
