@@ -82,6 +82,50 @@
         .signal-action::before { content: 'Action: '; font-weight: 600; font-style: normal; color: var(--text-secondary); }
         .site-footer { text-align: center; padding: 20px; margin-top: 20px; border-top: 1px solid var(--border-secondary); color: var(--text-dim); font-size: 0.85rem; }
         .site-footer p { margin: 4px 0; }
+        
+        /* New Styles for Signal Library */
+        .signals-library {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 15px;
+            margin-bottom: 40px;
+        }
+        .library-card {
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border-secondary);
+            padding: 15px;
+            position: relative;
+            opacity: 0.6;
+        }
+        .library-card .signal-title {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        .library-card .signal-desc {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            line-height: 1.4;
+        }
+        .library-card .status-dot {
+            position: absolute;
+            top: 18px;
+            right: 15px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #555;
+            border: 1px solid #777;
+        }
+        .library-card .status-dot.active {
+            background-color: var(--accent-green);
+            box-shadow: 0 0 8px var(--accent-green);
+            border-color: #fff;
+        }
+        .library-card.active-card {
+            opacity: 1;
+            border-color: var(--border-primary);
+        }
+        
         @media (max-width: 1200px) { .main-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -102,6 +146,7 @@
             <button class="control-btn active" id="btn-all">All Markets</button>
             <button class="control-btn" id="btn-global">Global Indices</button>
             <button class="control-btn" id="btn-india">Indian Markets</button>
+            <button class="control-btn" id="btn-library">Signal Library</button>
             <button class="control-btn" id="refresh-btn">Refresh Data</button>
             <button class="control-btn" id="autorefresh-btn">Auto-Refresh: ON</button>
         </div>
@@ -109,7 +154,9 @@
             <section class="dashboard-section">
                 <h2 class="section-title">Active Signals</h2>
                 <div class="signals-grid" id="signalsGrid"><div class="loading"></div></div>
-                <h2 class="section-title" style="margin-top: 40px;">Market Data Matrix</h2>
+                <div class="signals-library" id="signalsLibrary" style="display: none;"></div>
+                
+                <h2 class="section-title" id="matrix-title" style="margin-top: 40px;">Market Data Matrix</h2>
                 <div class="dashboard-grid" id="dashboardGrid"><div class="loading"></div></div>
             </section>
             <aside class="sidebar">
