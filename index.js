@@ -1,29 +1,15 @@
-// server.js
 const express = require('express');
 const fetch = require('node-fetch');
 const cors = require('cors');
-const path = require('path'); // Add path module
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 
-// **NEW**: Serve static files (like market-mirror.html) from the current directory
-// app.use(express.static(path.join(__dirname)));
-
-// // **NEW**: Route for the main page
-// app.get('/', (req, res) => {
-//     res.sendFile(path.join(__dirname, 'index.html'));
-// });
-
+// Serve the static files from the 'dist' folder
 app.use(express.static(path.join(__dirname, 'dist')));
-
-// Also change the root route to serve the new HTML
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-});
-
 
 // Endpoint for fetching financial data
 app.get('/finance-data/:symbol', async (req, res) => {
@@ -73,7 +59,22 @@ app.get('/news', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`✅ Market Mirror server is running.`);
-    console.log(`✅ Open your browser and go to http://localhost:${PORT}`);
+// All other GET requests not handled before will return the React app
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+
+const server = app.listen(PORT, () => {
+    console.log(`✅ Market Mirror server is running on port ${PORT}.`);
+});
+
+server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+        console.error(`❌ ERROR: Port ${PORT} is already in use.`);
+        console.error('Please stop the other application or change the PORT variable.');
+    } else {
+        console.error('An error occurred during server startup:', err);
+    }
+    process.exit(1);
 });
