@@ -10,12 +10,20 @@ const PORT = 3000;
 app.use(cors());
 
 // **NEW**: Serve static files (like market-mirror.html) from the current directory
-app.use(express.static(path.join(__dirname)));
+// app.use(express.static(path.join(__dirname)));
 
-// **NEW**: Route for the main page
+// // **NEW**: Route for the main page
+// app.get('/', (req, res) => {
+//     res.sendFile(path.join(__dirname, 'index.html'));
+// });
+
+app.use(express.static(path.join(__dirname, 'dist')));
+
+// Also change the root route to serve the new HTML
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
+
 
 // Endpoint for fetching financial data
 app.get('/finance-data/:symbol', async (req, res) => {
