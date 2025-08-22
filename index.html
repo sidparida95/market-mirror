@@ -81,6 +81,8 @@
         .signal-action { font-size: 0.8rem; color: var(--text-dim); margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-secondary); font-style: italic; }
         .signal-action::before { content: 'Action: '; font-weight: 600; font-style: normal; color: var(--text-secondary); }
         @media (max-width: 1200px) { .main-grid { grid-template-columns: 1fr; } }
+        .site-footer {text-align: center; padding: 20px; margin-top: 20px; border-top: 1px solid var(--border-secondary); color: var(--text-dim); font-size: 0.85rem; }
+        .site-footer p { margin: 4px 0; }
     </style>
 </head>
 <body>
@@ -539,4 +541,8 @@
         window.addEventListener('load', () => { populateChartSelector(); renderDashboard(); startAutoRefresh(); });
     </script>
 </body>
+<footer class="site-footer">
+    <p>Made by S Parida</p>
+    <p>&copy; 2025 Market Mirror. All Rights Reserved.</p>
+</footer>
 </html>
