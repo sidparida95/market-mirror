@@ -1,7 +1,7 @@
 # Market Mirror
 A platform to better understand market macroeconomic trends based on sentiment analysis and global news
 
-# Demo currently hosted at 
+# Demo Link
 [Mirror Market](https://market-mirror.onrender.com)
 
 
